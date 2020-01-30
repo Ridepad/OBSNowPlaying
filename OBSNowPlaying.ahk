@@ -1,45 +1,49 @@
-﻿#NoEnv  ; Recommended for performance and compatibility with future AutoHotkey releases.
-; #Warn  ; Enable warnings to assist with detecting common errors.
-SendMode Input  ; Recommended for new scripts due to its superior speed and reliability.
+#NoEnv  ; Recommended for performance and compatibility with future AutoHotkey releases.
 SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
+
 FileEncoding, UTF-8
-
-windowTitle := "- YouTube - Google Chrome"
 SetTitleMatchMode 2 
-DetectHiddenWindows, on
+DetectHiddenWindows on
 
-Run := False
-	
-F3:: Run:=False
+Frmt(Current_Song)
+{
+	Current_Song := StrReplace(Current_Song, "[Monstercat Release]")
+	Current_Song := StrReplace(Current_Song, "(Original Mix)")
+	Current_Song := RegExReplace(Current_Song, "\[?H[DQ]\]?")		;[HD][HQ]HD
+	Half := Floor(StrLen(Current_Song) / 2)
+	First_Half := SubStr(Current_Song, 1, Half)
+	Half_Ftmt := RegExReplace(First_Half, "^\(\d+\)")				;(22) ...
+	Half_Ftmt := RegExReplace(Half_Ftmt, "\【.+?\】")					;... 【Drum&Bass】 ...
+	Half_Ftmt := RegExReplace(Half_Ftmt, "\[.+?\]")					;... [Electro] ...
+	Current_Song := StrReplace(Current_Song, First_Half, Half_Ftmt)
+	Current_Song := RegExReplace(Current_Song, "[\[\(].+EP[\)\]]")	;... [Secret Weapon EP] ...
+	Current_Song := RegExReplace(Current_Song, "(?<=[\)\]\|]).+$")	;|)] ....
+	return Trim(Current_Song, "|- `t")
+}
 
-F2::
+Look_For := "- YouTube - Google Chrome"
+File_song_name := A_ScriptDir . "\OBS.txt"
+
+while True
+{
 	Last_Window_Title := 
-	WinGet, Window_ID, ID, %windowTitle%
+	WinGet, Window_ID, ID, %Look_For%
 	Sleep, 100
-	if Window_ID
-		Run := True
-	while Run
-	{
-		WinGetTitle, Current_Window_Title, ahk_id %Window_ID%
+	while WinExist("ahk_id" Window_ID)
+	{ 
+		WinGetTitle, Current_Window_Title
 		Sleep, 200
-		if (Current_Window_Title != Last_Window_Title and InStr(Current_Window_Title, windowTitle))
+		if !InStr(Current_Window_Title, Look_For)
+			break
+		if (Current_Window_Title != Last_Window_Title)
 		{
-			RegExMatch(Current_Window_Title, "([^-]+(?:-[^-]+)*)", _match)
-			Current_Song := RegExReplace(_match1, "^\(\d+\)")				;(...)
-			Current_Song := RegExReplace(Current_Song, "\[.+?\]")			;[...]
-			Current_Song := RegExReplace(Current_Song, "(?<=[\)\]]).+$")	;)|]....
-			Current_Song := RegExReplace(Current_Song, "\[?H[DQ]\]?")		;[HD][HQ]HD
-			Current_Song := StrReplace(Current_Song, "[Monstercat Release]")
-			Current_Song := StrReplace(Current_Song, windowTitle)
-			Current_Song := Trim(Current_Song, "- `t")
-			FileDelete, %A_ScriptDir%\OBS.txt
-			Sleep, 100
-			TmpStr := "Current song: " . Current_Song
-			;MsgBox, %TmpStr%
-			FileAppend, %TmpStr%, %A_ScriptDir%\OBS.txt
 			Last_Window_Title := Current_Window_Title
+			Current_Song := Frmt( StrReplace(Current_Window_Title, Look_For) )
+			FileDelete, %File_song_name%
+			Sleep, 200
+			FileAppend, %Current_Song%, %File_song_name%
 		}
-		Sleep, 1000
+		Sleep, 2500
 	}
-	Window_ID := 
-	return
+	Sleep, 2500
+}
