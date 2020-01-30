@@ -21,7 +21,7 @@ Frmt(Current_Song)
 	return Trim(Current_Song, "|- `t")
 }
 
-Look_For := "- YouTube - Google Chrome"
+Look_For := "- YouTube - "
 File_song_name := A_ScriptDir . "\OBS.txt"
 
 while True
@@ -35,10 +35,12 @@ while True
 		Sleep, 200
 		if !InStr(Current_Window_Title, Look_For)
 			break
+		if InStr(Current_Window_Title, "Liked videos")
+			break
 		if (Current_Window_Title != Last_Window_Title)
 		{
 			Last_Window_Title := Current_Window_Title
-			Current_Song := Frmt( StrReplace(Current_Window_Title, Look_For) )
+			Current_Song := Frmt( RegExReplace(Current_Window_Title, Look_For . ".+$") )
 			FileDelete, %File_song_name%
 			Sleep, 200
 			FileAppend, %Current_Song%, %File_song_name%
